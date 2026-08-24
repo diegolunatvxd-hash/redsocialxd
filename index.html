@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Twitter Anónimo</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f8fa; }
+    .box { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    textarea { width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 8px; box-sizing: border-box; resize: vertical; }
+    button { background: #1da1f2; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+    button:hover { background: #0d8ddb; }
+    .post { background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .post img { max-width: 100%; border-radius: 8px; margin-top: 10px; }
+    .actions { margin-top: 10px; display: flex; gap: 10px; }
+    .vote-btn { background: #e1e8ed; color: #333; padding: 5px 10px; border-radius: 15px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+
+  <h1>Twitter Anónimo</h1>
+
+  <div class="box">
+    <form id="postForm">
+      <textarea id="content" rows="3" placeholder="¿Qué está pasando anónimamente?"></textarea><br><br>
+      <input type="file" id="image" accept="image/*"><br><br>
+      <button type="submit">Publicar</button>
+    </form>
+  </div>
+
+  <div id="feed"></div>
+
+  <script>
+    const form = document.getElementById('postForm');
+    const feed = document.getElementById('feed');
+
+    async function loadPosts() {
+      const res = await fetch('/api/posts');
+      const posts = await res.json();
+      feed.innerHTML = posts.map(post => `
+        <div class="post">
+          <p>${post.content || ''}</p>
+          ${post.image_url ? `<img src="${post.image_url}" />` : ''}
+          <div class="actions">
+            <button class="vote-btn" onclick="vote('${post.id}', 'like')">👍 ${post.likes}</button>
+            <button class="vote-btn" onclick="vote('${post.id}', 'dislike')">👎 ${post.dislikes}</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append('content', document.getElementById('content').value);
+      const imageFile = document.getElementById('image').files[0];
+      if (imageFile) formData.append('image', imageFile);
+
+      await fetch('/api/posts', { method: 'POST', body: formData });
+      form.reset();
+      loadPosts();
+    });
+
+    async function vote(id, type) {
+      await fetch(`/api/posts/${id}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type })
+      });
+      loadPosts();
+    }
+
+    loadPosts();
+  </script>
+</body>
+</html>
