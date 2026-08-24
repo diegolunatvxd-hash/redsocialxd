@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
@@ -9,22 +10,32 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
 
-// Configuración de Supabase usando variables de entorno
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Servir archivos estáticos y ruta principal explícita
+app.use(express.static(path.join(__dirname, 'public')));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
-// Crear publicación (texto, foto o ambos)
+// Endpoint para exponer credenciales públicas al cliente frontend (necesarias para Realtime)
+app.get('/api/config', (req, res) => {
+  res.json({
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseKey: process.env.SUPABASE_KEY
+  });
+});
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
+// Crear publicación o respuesta
 app.post('/api/posts', upload.single('image'), async (req, res) => {
   try {
-    const { content } = req.body;
+    const { content, parent_id } = req.body;
     let imageUrl = null;
 
     if (req.file) {
       const fileName = `${Date.now()}_${req.file.originalname}`;
-      const { data: fileData, error: fileError } = await supabase.storage
+      const { error: fileError } = await supabase.storage
         .from('publicaciones')
         .upload(fileName, req.file.buffer, { contentType: req.file.mimetype });
 
@@ -33,13 +44,19 @@ app.post('/api/posts', upload.single('image'), async (req, res) => {
       const { data: publicUrlData } = supabase.storage
         .from('publicaciones')
         .getPublicUrl(fileName);
-      
+
       imageUrl = publicUrlData.publicUrl;
     }
 
     const { data, error } = await supabase
       .from('posts')
-      .insert([{ content: content || '', image_url: imageUrl, likes: 0, dislikes: 0 }])
+      .insert([{ 
+        content: content || '', 
+        image_url: imageUrl, 
+        likes: 0, 
+        dislikes: 0,
+        parent_id: parent_id || null
+      }])
       .select();
 
     if (error) throw error;
@@ -49,7 +66,7 @@ app.post('/api/posts', upload.single('image'), async (req, res) => {
   }
 });
 
-// Obtener todas las publicaciones
+// Obtener todas las publicaciones ordenadas
 app.get('/api/posts', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -64,11 +81,11 @@ app.get('/api/posts', async (req, res) => {
   }
 });
 
-// Dar Like o Dislike
+// Registrar voto (sumar o restar al cambiar de opinión)
 app.post('/api/posts/:id/vote', async (req, res) => {
   try {
     const { id } = req.params;
-    const { type } = req.body; // 'like' o 'dislike'
+    const { type, action } = req.body; // type: 'like'|'dislike', action: 'add'|'remove'
 
     const { data: post, error: fetchError } = await supabase
       .from('posts')
@@ -78,9 +95,14 @@ app.post('/api/posts/:id/vote', async (req, res) => {
 
     if (fetchError) throw fetchError;
 
-    const updates = type === 'like' 
-      ? { likes: post.likes + 1 } 
-      : { dislikes: post.dislikes + 1 };
+    let updates = {};
+    if (type === 'like') {
+      const newLikes = action === 'add' ? post.likes + 1 : Math.max(0, post.likes - 1);
+      updates = { likes: newLikes };
+    } else if (type === 'dislike') {
+      const newDislikes = action === 'add' ? post.dislikes + 1 : Math.max(0, post.dislikes - 1);
+      updates = { dislikes: newDislikes };
+    }
 
     const { data, error: updateError } = await supabase
       .from('posts')
