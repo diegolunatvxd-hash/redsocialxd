@@ -6,29 +6,195 @@
   <title>Twitter Anónimo</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f8fa; }
-    .box { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-    textarea { width: 100%; border: 1px solid #ccc; border-radius: 5px; padding: 8px; box-sizing: border-box; resize: vertical; }
-    button { background: #1da1f2; color: white; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: bold; }
-    button:hover { background: #0d8ddb; }
-    .post { background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .post img { max-width: 100%; border-radius: 8px; margin-top: 10px; }
-    .actions { margin-top: 10px; display: flex; gap: 10px; }
-    .vote-btn { background: #e1e8ed; color: #333; padding: 5px 10px; border-radius: 15px; font-size: 0.9em; cursor: pointer; border: none; }
-    .vote-btn.active { background: #1da1f2; color: white; }
-    .replies { margin-left: 20px; border-left: 2px solid #e1e8ed; padding-left: 10px; margin-top: 10px; }
-    .reply-form { margin-top: 10px; display: none; }
+    :root {
+      --bg-color: #0d0f17;
+      --glass-bg: rgba(23, 27, 44, 0.65);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --primary: #1da1f2;
+      --primary-hover: #0d8ddb;
+      --like-color: #00e676;
+      --dislike-color: #ff5252;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+
+    body {
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: var(--bg-color);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(29, 161, 242, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(124, 58, 237, 0.15) 0px, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text-main);
+    }
+
+    .header-img {
+      display: block;
+      max-width: 220px;
+      height: auto;
+      margin: 10px auto 25px auto;
+      filter: drop-shadow(0 4px 12px rgba(29, 161, 242, 0.3));
+    }
+
+    .glass-panel {
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      margin-bottom: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 12px;
+      box-sizing: border-box;
+      resize: vertical;
+      color: var(--text-main);
+      font-size: 0.95em;
+      outline: none;
+      transition: border 0.3s ease;
+    }
+
+    textarea:focus {
+      border-color: var(--primary);
+    }
+
+    input[type="file"] {
+      color: var(--text-muted);
+      font-size: 0.85em;
+    }
+
+    /* Botón principal animado */
+    .btn-main {
+      background: linear-gradient(135deg, #1da1f2, #7c3aed);
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 4px 15px rgba(29, 161, 242, 0.3);
+    }
+
+    .btn-main:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+    }
+
+    .btn-main:active {
+      transform: translateY(1px) scale(0.97);
+    }
+
+    .post {
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .post p {
+      margin: 0 0 10px 0;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .post img {
+      max-width: 100%;
+      border-radius: 12px;
+      margin-top: 10px;
+      border: 1px solid var(--glass-border);
+    }
+
+    .actions {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* Botones de acción animados */
+    .vote-btn {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: 0.88em;
+      cursor: pointer;
+      border: 1px solid var(--glass-border);
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+    }
+
+    .vote-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text-main);
+      transform: scale(1.05);
+    }
+
+    .vote-btn:active {
+      transform: scale(0.92);
+    }
+
+    /* Estados activos personalizados */
+    .vote-btn.like-active {
+      background: rgba(0, 230, 118, 0.15);
+      color: var(--like-color);
+      border-color: rgba(0, 230, 118, 0.4);
+      box-shadow: 0 0 12px rgba(0, 230, 118, 0.2);
+    }
+
+    .vote-btn.dislike-active {
+      background: rgba(255, 82, 82, 0.15);
+      color: var(--dislike-color);
+      border-color: rgba(255, 82, 82, 0.4);
+      box-shadow: 0 0 12px rgba(255, 82, 82, 0.2);
+    }
+
+    .vote-btn.reply-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .replies {
+      margin-left: 15px;
+      border-left: 2px solid rgba(255, 255, 255, 0.08);
+      padding-left: 12px;
+      margin-top: 15px;
+    }
+
+    .reply-form {
+      margin-top: 15px;
+      display: none;
+      animation: fadeIn 0.3s ease-out;
+    }
   </style>
 </head>
 <body>
 
-  <h1>Twitter Anónimo</h1>
+  <img src="payload.png" alt="Logo" class="header-img">
 
-  <div class="box">
+  <div class="glass-panel">
     <form id="postForm">
-      <textarea id="content" rows="3" placeholder="¿Qué está pasando anónimamente?"></textarea><br><br>
-      <input type="file" id="image" accept="image/*"><br><br>
-      <button type="submit">Publicar</button>
+      <textarea id="content" rows="3" placeholder="¿Qué estás pensando anónimamente...?"></textarea><br><br>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <input type="file" id="image" accept="image/*">
+        <button type="submit" class="btn-main">Publicar</button>
+      </div>
     </form>
   </div>
 
@@ -39,16 +205,27 @@
     const feed = document.getElementById('feed');
     let allPosts = [];
 
-    // Cargar votos guardados en localStorage para evitar duplicados
+    // Generar o recuperar un ID único local por dispositivo para aislar los likes por usuario
+    function getAnonUserId() {
+      let id = localStorage.getItem('anon_user_id');
+      if (!id) {
+        id = 'user_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('anon_user_id', id);
+      }
+      return id;
+    }
+
+    const anonUserId = getAnonUserId();
+
     function getVotedState(postId, type) {
-      return localStorage.getItem(`voted_${type}_${postId}`) === 'true';
+      return localStorage.getItem(`voted_${type}_${postId}_${anonUserId}`) === 'true';
     }
 
     function setVotedState(postId, type, value) {
       if (value) {
-        localStorage.setItem(`voted_${type}_${postId}`, 'true');
+        localStorage.setItem(`voted_${type}_${postId}_${anonUserId}`, 'true');
       } else {
-        localStorage.removeItem(`voted_${type}_${postId}`);
+        localStorage.removeItem(`voted_${type}_${postId}_${anonUserId}`);
       }
     }
 
@@ -69,23 +246,31 @@
       const hasDisliked = getVotedState(post.id, 'dislike');
 
       return `
-        <div class="post" id="post-${post.id}">
+        <div class="glass-panel post" id="post-${post.id}">
           <p>${post.content || ''}</p>
           ${post.image_url ? `<img src="${post.image_url}" />` : ''}
           <div class="actions">
-            <button class="vote-btn ${hasLiked ? 'active' : ''}" onclick="toggleVote('${post.id}', 'like')">👍 ${post.likes}</button>
-            <button class="vote-btn ${hasDisliked ? 'active' : ''}" onclick="toggleVote('${post.id}', 'dislike')">👎 ${post.dislikes}</button>
-            <button class="vote-btn" onclick="toggleReplyForm('${post.id}')">💬 Responder (${replies.length})</button>
+            <button class="vote-btn ${hasLiked ? 'like-active' : ''}" onclick="toggleVote('${post.id}', 'like')">
+              👍 <span>${post.likes}</span>
+            </button>
+            <button class="vote-btn ${hasDisliked ? 'dislike-active' : ''}" onclick="toggleVote('${post.id}', 'dislike')">
+              👎 <span>${post.dislikes}</span>
+            </button>
+            <button class="vote-btn reply-btn" onclick="toggleReplyForm('${post.id}')">
+              💬 <span>Responder (${replies.length})</span>
+            </button>
           </div>
           
           <div class="reply-form" id="reply-form-${post.id}">
-            <textarea id="reply-input-${post.id}" rows="2" placeholder="Escribe tu respuesta..."></textarea>
-            <button onclick="submitReply('${post.id}')">Enviar Respuesta</button>
+            <textarea id="reply-input-${post.id}" rows="2" placeholder="Escribe tu respuesta anónima..."></textarea><br><br>
+            <button class="btn-main" onclick="submitReply('${post.id}')" style="padding: 6px 16px; font-size: 0.85em;">Enviar</button>
           </div>
 
-          <div class="replies">
-            ${replies.map(r => renderPostHtml(r)).join('')}
-          </div>
+          ${replies.length > 0 ? `
+            <div class="replies">
+              ${replies.map(r => renderPostHtml(r)).join('')}
+            </div>
+          ` : ''}
         </div>
       `;
     }
@@ -106,6 +291,7 @@
       const action = hasVoted ? 'remove' : 'add';
 
       setVotedState(id, type, !hasVoted);
+      renderFeed();
 
       await fetch(`/api/posts/${id}/vote`, {
         method: 'POST',
@@ -130,7 +316,6 @@
       await fetch('/api/posts', { method: 'POST', body: formData });
     }
 
-    // Configuración de Supabase Realtime para recibir cambios en tiempo real
     async function initRealtime() {
       const configRes = await fetch('/api/config');
       const { supabaseUrl, supabaseKey } = await configRes.json();
