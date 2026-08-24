@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Twitter Anónimo</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f8fa; }
     .box { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
@@ -13,7 +14,10 @@
     .post { background: white; padding: 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .post img { max-width: 100%; border-radius: 8px; margin-top: 10px; }
     .actions { margin-top: 10px; display: flex; gap: 10px; }
-    .vote-btn { background: #e1e8ed; color: #333; padding: 5px 10px; border-radius: 15px; font-size: 0.9em; }
+    .vote-btn { background: #e1e8ed; color: #333; padding: 5px 10px; border-radius: 15px; font-size: 0.9em; cursor: pointer; border: none; }
+    .vote-btn.active { background: #1da1f2; color: white; }
+    .replies { margin-left: 20px; border-left: 2px solid #e1e8ed; padding-left: 10px; margin-top: 10px; }
+    .reply-form { margin-top: 10px; display: none; }
   </style>
 </head>
 <body>
@@ -33,20 +37,57 @@
   <script>
     const form = document.getElementById('postForm');
     const feed = document.getElementById('feed');
+    let allPosts = [];
+
+    // Cargar votos guardados en localStorage para evitar duplicados
+    function getVotedState(postId, type) {
+      return localStorage.getItem(`voted_${type}_${postId}`) === 'true';
+    }
+
+    function setVotedState(postId, type, value) {
+      if (value) {
+        localStorage.setItem(`voted_${type}_${postId}`, 'true');
+      } else {
+        localStorage.removeItem(`voted_${type}_${postId}`);
+      }
+    }
 
     async function loadPosts() {
       const res = await fetch('/api/posts');
-      const posts = await res.json();
-      feed.innerHTML = posts.map(post => `
-        <div class="post">
+      allPosts = await res.json();
+      renderFeed();
+    }
+
+    function renderFeed() {
+      const parentPosts = allPosts.filter(p => !p.parent_id);
+      feed.innerHTML = parentPosts.map(post => renderPostHtml(post)).join('');
+    }
+
+    function renderPostHtml(post) {
+      const replies = allPosts.filter(p => p.parent_id === post.id);
+      const hasLiked = getVotedState(post.id, 'like');
+      const hasDisliked = getVotedState(post.id, 'dislike');
+
+      return `
+        <div class="post" id="post-${post.id}">
           <p>${post.content || ''}</p>
           ${post.image_url ? `<img src="${post.image_url}" />` : ''}
           <div class="actions">
-            <button class="vote-btn" onclick="vote('${post.id}', 'like')">👍 ${post.likes}</button>
-            <button class="vote-btn" onclick="vote('${post.id}', 'dislike')">👎 ${post.dislikes}</button>
+            <button class="vote-btn ${hasLiked ? 'active' : ''}" onclick="toggleVote('${post.id}', 'like')">👍 ${post.likes}</button>
+            <button class="vote-btn ${hasDisliked ? 'active' : ''}" onclick="toggleVote('${post.id}', 'dislike')">👎 ${post.dislikes}</button>
+            <button class="vote-btn" onclick="toggleReplyForm('${post.id}')">💬 Responder (${replies.length})</button>
+          </div>
+          
+          <div class="reply-form" id="reply-form-${post.id}">
+            <textarea id="reply-input-${post.id}" rows="2" placeholder="Escribe tu respuesta..."></textarea>
+            <button onclick="submitReply('${post.id}')">Enviar Respuesta</button>
+          </div>
+
+          <div class="replies">
+            ${replies.map(r => renderPostHtml(r)).join('')}
           </div>
         </div>
-      `).join('');
+      `;
     }
 
     form.addEventListener('submit', async (e) => {
@@ -58,19 +99,54 @@
 
       await fetch('/api/posts', { method: 'POST', body: formData });
       form.reset();
-      loadPosts();
     });
 
-    async function vote(id, type) {
+    async function toggleVote(id, type) {
+      const hasVoted = getVotedState(id, type);
+      const action = hasVoted ? 'remove' : 'add';
+
+      setVotedState(id, type, !hasVoted);
+
       await fetch(`/api/posts/${id}/vote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type })
+        body: JSON.stringify({ type, action })
       });
-      loadPosts();
+    }
+
+    function toggleReplyForm(id) {
+      const formDiv = document.getElementById(`reply-form-${id}`);
+      formDiv.style.display = formDiv.style.display === 'block' ? 'none' : 'block';
+    }
+
+    async function submitReply(parentId) {
+      const content = document.getElementById(`reply-input-${parentId}`).value;
+      if (!content.trim()) return;
+
+      const formData = new FormData();
+      formData.append('content', content);
+      formData.append('parent_id', parentId);
+
+      await fetch('/api/posts', { method: 'POST', body: formData });
+    }
+
+    // Configuración de Supabase Realtime para recibir cambios en tiempo real
+    async function initRealtime() {
+      const configRes = await fetch('/api/config');
+      const { supabaseUrl, supabaseKey } = await configRes.json();
+      
+      const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+      supabaseClient
+        .channel('public:posts')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+          loadPosts();
+        })
+        .subscribe();
     }
 
     loadPosts();
+    initRealtime();
   </script>
 </body>
 </html>
