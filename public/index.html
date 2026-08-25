@@ -3,32 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Twitter Anónimo</title>
+  <title>Payload App</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --bg-color: #0d0f17;
       --glass-bg: rgba(23, 27, 44, 0.65);
       --glass-border: rgba(255, 255, 255, 0.08);
-      --primary: #1da1f2;
+      --primary: #ffd700; /* Amarillo en Payload */
       --like-color: #00e676;
       --dislike-color: #ff5252;
-      --pin-color: #ffd700;
       --text-main: #f1f5f9;
       --text-muted: #94a3b8;
+    }
+
+    body.theme-plus {
+      --primary: #1da1f2; /* Azul en Payload Plus */
+      --glass-border: rgba(29, 161, 242, 0.2);
     }
 
     body {
       font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       max-width: 650px;
       margin: 0 auto;
-      padding: 20px;
+      padding: 20px 20px 80px 20px;
       background-color: var(--bg-color);
-      background-image: 
-        radial-gradient(at 0% 0%, rgba(29, 161, 242, 0.15) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(124, 58, 237, 0.15) 0px, transparent 50%);
-      background-attachment: fixed;
       color: var(--text-main);
+      transition: all 0.3s ease;
     }
 
     .header-img {
@@ -36,6 +37,10 @@
       max-width: 220px;
       height: auto;
       margin: 10px auto 25px auto;
+      filter: drop-shadow(0 4px 12px rgba(255, 215, 0, 0.2));
+    }
+
+    body.theme-plus .header-img {
       filter: drop-shadow(0 4px 12px rgba(29, 161, 242, 0.3));
     }
 
@@ -56,24 +61,21 @@
       top: 15px;
       right: 15px;
       font-size: 1.2em;
-      filter: drop-shadow(0 0 6px var(--pin-color));
     }
 
-    textarea {
+    textarea, input[type="text"], input[type="password"] {
       width: 100%;
       background: rgba(15, 23, 42, 0.6);
       border: 1px solid var(--glass-border);
       border-radius: 10px;
-      padding: 12px;
+      padding: 10px;
       box-sizing: border-box;
-      resize: vertical;
       color: var(--text-main);
-      font-size: 0.95em;
       outline: none;
-      transition: border 0.3s ease;
+      margin-bottom: 10px;
     }
 
-    textarea:focus { border-color: var(--primary); }
+    textarea:focus, input:focus { border-color: var(--primary); }
 
     input[type="file"] { display: none; }
 
@@ -88,137 +90,75 @@
       border: 1px solid var(--glass-border);
       color: var(--text-main);
       font-size: 1.4em;
-      font-weight: bold;
       cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      user-select: none;
-    }
-
-    .file-upload-btn:hover {
-      background: rgba(29, 161, 242, 0.2);
-      border-color: var(--primary);
-      color: var(--primary);
-      transform: scale(1.1);
-    }
-
-    .file-upload-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .file-name {
-      font-size: 0.8em;
-      color: var(--text-muted);
-      max-width: 150px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .btn-main {
-      background: linear-gradient(135deg, #1da1f2, #7c3aed);
-      color: white;
+      background: var(--primary);
+      color: #000;
       border: none;
       padding: 10px 24px;
       border-radius: 25px;
       cursor: pointer;
       font-weight: bold;
-      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      box-shadow: 0 4px 15px rgba(29, 161, 242, 0.3);
+      transition: all 0.2s;
     }
 
-    .btn-main:hover {
-      transform: translateY(-2px) scale(1.03);
-      box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+    body.theme-plus .btn-main { color: #fff; }
+
+    .btn-main:hover { transform: scale(1.03); }
+
+    .post-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
     }
 
-    .btn-main:active { transform: translateY(1px) scale(0.97); }
-
-    .post { animation: fadeIn 0.4s ease-out; }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--primary);
     }
 
-    .post p { margin: 0 0 10px 0; line-height: 1.5; word-break: break-word; }
-    
-    .post-img-container {
-      margin-top: 10px;
-      border-radius: 12px;
-      overflow: hidden;
-      background: rgba(0, 0, 0, 0.2);
+    .username {
+      font-weight: bold;
+      color: var(--primary);
     }
 
-    .post img {
-      width: 100%;
-      height: auto;
-      display: block;
-      border-radius: 12px;
-      border: 1px solid var(--glass-border);
-    }
+    .crown { font-size: 0.9em; margin-left: 4px; }
 
-    .actions { margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .actions { margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; }
 
     .vote-btn {
       background: rgba(255, 255, 255, 0.05);
       color: var(--text-muted);
-      padding: 7px 14px;
+      padding: 6px 12px;
       border-radius: 20px;
-      font-size: 0.88em;
+      font-size: 0.85em;
       cursor: pointer;
       border: 1px solid var(--glass-border);
-      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      user-select: none;
+      gap: 5px;
     }
 
-    .vote-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: var(--text-main);
-      transform: scale(1.05);
-    }
+    .vote-btn.like-active { color: var(--like-color); border-color: var(--like-color); }
+    .vote-btn.dislike-active { color: var(--dislike-color); border-color: var(--dislike-color); }
 
-    .vote-btn:active { transform: scale(0.92); }
-
-    .vote-btn.like-active {
-      background: rgba(0, 230, 118, 0.15);
-      color: var(--like-color);
-      border-color: rgba(0, 230, 118, 0.4);
-      box-shadow: 0 0 12px rgba(0, 230, 118, 0.2);
-    }
-
-    .vote-btn.dislike-active {
-      background: rgba(255, 82, 82, 0.15);
-      color: var(--dislike-color);
-      border-color: rgba(255, 82, 82, 0.4);
-      box-shadow: 0 0 12px rgba(255, 82, 82, 0.2);
-    }
-
-    .vote-btn.pin-btn.active {
-      background: rgba(255, 215, 0, 0.15);
-      color: var(--pin-color);
-      border-color: var(--pin-color);
-    }
-
-    /* Árbol continuo de respuestas en línea */
     .replies-thread {
       margin-left: 12px;
       padding-left: 14px;
-      border-left: 2px solid rgba(29, 161, 242, 0.3);
+      border-left: 2px solid var(--glass-border);
       margin-top: 12px;
       display: flex;
       flex-direction: column;
       gap: 10px;
     }
 
-    .reply-node {
-      position: relative;
-    }
-
+    .reply-node { position: relative; }
     .reply-node::before {
       content: '';
       position: absolute;
@@ -226,24 +166,75 @@
       top: 20px;
       width: 10px;
       height: 2px;
-      background: rgba(29, 161, 242, 0.3);
+      background: var(--glass-border);
     }
 
     .reply-form { margin-top: 15px; display: none; }
+
+    /* NAVEGACIÓN INFERIOR (FOOTER MODOS) */
+    .mode-nav {
+      position: fixed;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+      border-radius: 30px;
+      padding: 6px;
+      display: flex;
+      gap: 8px;
+      z-index: 100;
+    }
+
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .nav-btn.active {
+      background: var(--primary);
+      color: #000;
+    }
+
+    body.theme-plus .nav-btn.active { color: #fff; }
   </style>
 </head>
 <body>
 
-  <img src="payload.png" alt="Logo" class="header-img">
+  <img id="logoImg" src="payload.png" class="header-img">
 
+  <!-- Panel Auth Payload Plus -->
+  <div class="glass-panel" id="authPanel" style="display:none;">
+    <div id="userInfo" style="display:none;">
+      <span id="userGreeting"></span> 👑
+      <button class="vote-btn" onclick="logout()" style="float:right;">Cerrar Sesión</button>
+    </div>
+    <form id="authForm">
+      <h3 style="margin-top:0;">Payload Plus - Iniciar Sesión / Registrarse</h3>
+      <input type="text" id="authUsername" placeholder="Usuario" required>
+      <input type="password" id="authPassword" placeholder="Contraseña" required>
+      <label for="authAvatar" style="font-size:0.8em; color:var(--text-muted);">Foto de Perfil (Opcional):</label><br>
+      <input type="file" id="authAvatar" accept="image/*" style="display:block; margin-bottom:10px;">
+      <button type="button" class="btn-main" onclick="handleAuth('login')">Ingresar</button>
+      <button type="button" class="btn-main" onclick="handleAuth('register')" style="background:transparent; color:var(--text-main); border:1px solid var(--glass-border);">Registrarse</button>
+    </form>
+  </div>
+
+  <!-- Formulario Publicar -->
   <div class="glass-panel">
     <form id="postForm">
-      <textarea id="content" rows="3" placeholder="¿Qué estás pensando anónimamente...?"></textarea><br><br>
+      <textarea id="content" rows="3" placeholder="¿Qué estás pensando...?"></textarea>
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div class="file-upload-wrapper">
-          <label for="image" class="file-upload-btn" title="Adjuntar imagen">+</label>
-          <input type="file" id="image" accept="image/*" onchange="showFileName(this)">
-          <span class="file-name" id="fileNameDisplay"></span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label for="image" class="file-upload-btn">+</label>
+          <input type="file" id="image" accept="image/*" onchange="document.getElementById('fileName').textContent = this.files[0]?.name || ''">
+          <span id="fileName" style="font-size:0.8em; color:var(--text-muted);"></span>
         </div>
         <button type="submit" class="btn-main">Publicar</button>
       </div>
@@ -252,44 +243,28 @@
 
   <div id="feed"></div>
 
+  <!-- Navegación Footer -->
+  <div class="mode-nav">
+    <button class="nav-btn active" id="btnPayload" onclick="switchMode('payload')">payload</button>
+    <button class="nav-btn" id="btnPlus" onclick="switchMode('plus')">payload plus</button>
+  </div>
+
   <script>
     const SECRET_ADMIN_KEY = 'soyunadminpoderosoXD@@##$$';
-    const form = document.getElementById('postForm');
-    const feed = document.getElementById('feed');
+    let currentMode = 'payload';
+    let currentUser = JSON.parse(localStorage.getItem('plus_user') || 'null');
     let allPosts = [];
 
-    // Sintetizador de audio con Web Audio API (Sin archivos de sonido externos)
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    
     function playSound(type) {
       if (audioCtx.state === 'suspended') audioCtx.resume();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      if (type === 'vote') {
-        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.1);
-      } else if (type === 'post') {
-        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.15);
-      } else if (type === 'admin') {
-        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
-        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.25);
-      }
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.frequency.setValueAtTime(type === 'vote' ? 500 : 350, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.1);
     }
 
     function getAnonTabId() {
@@ -301,144 +276,173 @@
       return id;
     }
     const anonTabId = getAnonTabId();
+    const isAdmin = () => sessionStorage.getItem('is_admin') === 'true';
 
-    function isAdmin() {
-      return sessionStorage.getItem('is_admin') === 'true';
+    function switchMode(mode) {
+      currentMode = mode;
+      document.body.classList.toggle('theme-plus', mode === 'plus');
+      document.getElementById('logoImg').src = mode === 'plus' ? 'payloadplus.png' : 'payload.png';
+      document.getElementById('btnPayload').classList.toggle('active', mode === 'payload');
+      document.getElementById('btnPlus').classList.toggle('active', mode === 'plus');
+      document.getElementById('authPanel').style.display = mode === 'plus' ? 'block' : 'none';
+      updateAuthUI();
+      loadPosts();
     }
 
-    function getVotedState(postId, type) {
-      return sessionStorage.getItem(`voted_${type}_${postId}_${anonTabId}`) === 'true';
-    }
-
-    function setVotedState(postId, type, value) {
-      if (value) {
-        sessionStorage.setItem(`voted_${type}_${postId}_${anonTabId}`, 'true');
+    function updateAuthUI() {
+      if (currentUser && currentMode === 'plus') {
+        document.getElementById('authForm').style.display = 'none';
+        document.getElementById('userInfo').style.display = 'block';
+        document.getElementById('userGreeting').innerHTML = `<img src="${currentUser.avatar_url || 'https://via.placeholder.com/30'}" class="user-avatar" style="vertical-align:middle;"> Hola, <b>${currentUser.username}</b>`;
       } else {
-        sessionStorage.removeItem(`voted_${type}_${postId}_${anonTabId}`);
+        document.getElementById('authForm').style.display = 'block';
+        document.getElementById('userInfo').style.display = 'none';
       }
     }
 
-    function showFileName(input) {
-      const display = document.getElementById('fileNameDisplay');
-      display.textContent = input.files && input.files[0] ? input.files[0].name : '';
+    async function handleAuth(type) {
+      const username = document.getElementById('authUsername').value;
+      const password = document.getElementById('authPassword').value;
+      const avatarFile = document.getElementById('authAvatar').files[0];
+
+      if (!username || !password) return alert('Completa los campos');
+
+      const formData = new FormData();
+      formData.append('username', username);
+      formData.append('password', password);
+      if (avatarFile) formData.append('avatar', avatarFile);
+
+      const endpoint = type === 'register' ? '/api/auth/register' : '/api/auth/login';
+      const res = await fetch(endpoint, { method: 'POST', body: type === 'register' ? formData : JSON.stringify({ username, password }), headers: type === 'login' ? {'Content-Type': 'application/json'} : {} });
+      const data = await res.json();
+
+      if (res.ok) {
+        currentUser = data;
+        localStorage.setItem('plus_user', JSON.stringify(data));
+        updateAuthUI();
+      } else {
+        alert(data.error);
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      localStorage.removeItem('plus_user');
+      updateAuthUI();
     }
 
     async function loadPosts() {
-      const res = await fetch('/api/posts');
+      const res = await fetch(`/api/posts?mode=${currentMode}`);
       allPosts = await res.json();
       renderFeed();
     }
 
     function renderFeed() {
       const parentPosts = allPosts.filter(p => !p.parent_id);
-      feed.innerHTML = parentPosts.map(post => renderPostHtml(post)).join('');
+      document.getElementById('feed').innerHTML = parentPosts.map(post => renderPostHtml(post)).join('');
     }
 
     function renderPostHtml(post, isReply = false) {
       const replies = allPosts.filter(p => p.parent_id === post.id);
-      const hasLiked = getVotedState(post.id, 'like');
-      const hasDisliked = getVotedState(post.id, 'dislike');
+      const hasLiked = sessionStorage.getItem(`voted_like_${post.id}_${anonTabId}`) === 'true';
+      const hasDisliked = sessionStorage.getItem(`voted_dislike_${post.id}_${anonTabId}`) === 'true';
+      const author = post.profiles;
 
       return `
         <div class="glass-panel post ${isReply ? 'reply-node' : ''}" id="post-${post.id}">
-          ${post.is_pinned ? `<span class="pinned-badge" title="Fijado por el Admin">📌</span>` : ''}
-          <p>${post.content || ''}</p>
-          ${post.image_url ? `
-          <div class="post-img-container">
-            <img src="${post.image_url}" loading="lazy" />
-          </div>
-        ` : ''}
-          <div class="actions">
-            <button class="vote-btn ${hasLiked ? 'like-active' : ''}" onclick="toggleVote('${post.id}', 'like')">
-              👍 <span>${post.likes}</span>
-            </button>
-            <button class="vote-btn ${hasDisliked ? 'dislike-active' : ''}" onclick="toggleVote('${post.id}', 'dislike')">
-              👎 <span>${post.dislikes}</span>
-            </button>
-            <button class="vote-btn" onclick="toggleReplyForm('${post.id}')">
-              💬 <span>Responder (${replies.length})</span>
-            </button>
-            ${isAdmin() && !post.parent_id ? `
-              <button class="vote-btn pin-btn ${post.is_pinned ? 'active' : ''}" onclick="togglePin('${post.id}', ${!post.is_pinned})">
-                📌 <span>${post.is_pinned ? 'Desfijar' : 'Fijar'}</span>
-              </button>
-            ` : ''}
-          </div>
-          
-          <div class="reply-form" id="reply-form-${post.id}">
-          <textarea id="reply-input-${post.id}" rows="2" placeholder="Escribe tu respuesta anónima..."></textarea><br><br>
-            <button class="btn-main" onclick="submitReply('${post.id}')" style="padding: 6px 16px; font-size: 0.85em;">Enviar</button>
-          </div>
-
-          ${replies.length > 0 ? `
-            <div class="replies-thread">
-              ${replies.map(r => renderPostHtml(r, true)).join('')}
+          ${post.is_pinned ? `<span class="pinned-badge">📌</span>` : ''}
+          ${author ? `
+            <div class="post-header">
+              <img src="${author.avatar_url || 'https://via.placeholder.com/36'}" class="user-avatar">
+              <span class="username">${author.username}</span>
+              <span class="crown">👑</span>
             </div>
           ` : ''}
+          <p>${post.content || ''}</p>
+          ${post.image_url ? `<img src="${post.image_url}" style="width:100%; border-radius:10px; margin-top:10px;" />` : ''}
+          <div class="actions">
+            <button class="vote-btn ${hasLiked ? 'like-active' : ''}" onclick="toggleVote('${post.id}', 'like')">👍 ${post.likes}</button>
+            <button class="vote-btn ${hasDisliked ? 'dislike-active' : ''}" onclick="toggleVote('${post.id}', 'dislike')">👎 ${post.dislikes}</button>
+            <button class="vote-btn" onclick="toggleReplyForm('${post.id}')">💬 (${replies.length})</button>
+            ${isAdmin() ? `
+              ${!post.parent_id ? `<button class="vote-btn" onclick="togglePin('${post.id}', ${!post.is_pinned})">📌</button>` : ''}
+              <button class="vote-btn" style="color:var(--dislike-color);" onclick="deletePost('${post.id}')">🗑️ Borrar</button>
+            ` : ''}
+          </div>
+          <div class="reply-form" id="reply-form-${post.id}">
+            <textarea id="reply-input-${post.id}" rows="2" placeholder="Responder..."></textarea>
+            <button class="btn-main" onclick="submitReply('${post.id}')" style="padding:4px 12px; font-size:0.8em;">Enviar</button>
+          </div>
+          ${replies.length > 0 ? `<div class="replies-thread">${replies.map(r => renderPostHtml(r, true)).join('')}</div>` : ''}
         </div>
       `;
     }
 
-    form.addEventListener('submit', async (e) => {
+    document.getElementById('postForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const content = document.getElementById('content').value;
 
-      // Verificar comando de Admin secreto
       if (content.trim() === SECRET_ADMIN_KEY) {
         sessionStorage.setItem('is_admin', 'true');
-        playSound('admin');
-        alert('⚡ Te has convertido en Administrador. Ahora puedes fijar publicaciones con la tachuela (📌).');
-        form.reset();
+        alert('⚡ Modo Admin activado.');
+        document.getElementById('content').value = '';
         renderFeed();
         return;
       }
 
+      if (currentMode === 'plus' && !currentUser) return alert('Debes iniciar sesión en Payload Plus.');
+
       const formData = new FormData();
       formData.append('content', content);
-      const imageFile = document.getElementById('image').files[0];
-      if (imageFile) formData.append('image', imageFile);
+      formData.append('mode', currentMode);
+      if (currentUser) formData.append('author_id', currentUser.id);
+      const file = document.getElementById('image').files[0];
+      if (file) formData.append('image', file);
 
       await fetch('/api/posts', { method: 'POST', body: formData });
       playSound('post');
-      form.reset();
-      document.getElementById('fileNameDisplay').textContent = '';
+      document.getElementById('postForm').reset();
+      document.getElementById('fileName').textContent = '';
     });
 
     async function toggleVote(id, type) {
       playSound('vote');
-      const hasVoted = getVotedState(id, type);
-      const action = hasVoted ? 'remove' : 'add';
-
-      setVotedState(id, type, !hasVoted);
-
+      const key = `voted_${type}_${id}_${anonTabId}`;
+      const hasVoted = sessionStorage.getItem(key) === 'true';
+      sessionStorage.setItem(key, !hasVoted);
       await fetch(`/api/posts/${id}/vote`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, action })
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ type, action: hasVoted ? 'remove' : 'add' })
       });
     }
 
+    async function deletePost(id) {
+      if (!confirm('¿Borrar publicación?')) return;
+      await fetch(`/api/posts/${id}`, { method: 'DELETE' });
+    }
+
     async function togglePin(id, isPinned) {
-      playSound('admin');
       await fetch(`/api/posts/${id}/pin`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ is_pinned: isPinned })
       });
     }
 
     function toggleReplyForm(id) {
-      const formDiv = document.getElementById(`reply-form-${id}`);
-      formDiv.style.display = formDiv.style.display === 'block' ? 'none' : 'block';
+      const el = document.getElementById(`reply-form-${id}`);
+      el.style.display = el.style.display === 'block' ? 'none' : 'block';
     }
 
     async function submitReply(parentId) {
       const content = document.getElementById(`reply-input-${parentId}`).value;
-      if (!content.trim()) return;
-
+      if (!content) return;
       const formData = new FormData();
       formData.append('content', content);
       formData.append('parent_id', parentId);
+      formData.append('mode', currentMode);
+      if (currentUser) formData.append('author_id', currentUser.id);
 
       await fetch('/api/posts', { method: 'POST', body: formData });
       playSound('post');
@@ -448,13 +452,7 @@
       const configRes = await fetch('/api/config');
       const { supabaseUrl, supabaseKey } = await configRes.json();
       const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-
-      supabaseClient
-        .channel('public:posts')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
-          loadPosts();
-        })
-        .subscribe();
+      supabaseClient.channel('public:posts').on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => loadPosts()).subscribe();
     }
 
     loadPosts();
