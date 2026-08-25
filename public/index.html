@@ -11,7 +11,6 @@
       --glass-bg: rgba(23, 27, 44, 0.65);
       --glass-border: rgba(255, 255, 255, 0.08);
       --primary: #1da1f2;
-      --primary-hover: #0d8ddb;
       --like-color: #00e676;
       --dislike-color: #ff5252;
       --text-main: #f1f5f9;
@@ -64,16 +63,54 @@
       transition: border 0.3s ease;
     }
 
-    textarea:focus {
+    textarea:focus { border-color: var(--primary); }
+
+    /* Ocultar input feo */
+    input[type="file"] { display: none; }
+
+    /* Botón "+" estilizado */
+    .file-upload-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--glass-border);
+      color: var(--text-main);
+      font-size: 1.4em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      user-select: none;
+    }
+
+    .file-upload-btn:hover {
+      background: rgba(29, 161, 242, 0.2);
       border-color: var(--primary);
+      color: var(--primary);
+      transform: scale(1.1);
     }
 
-    input[type="file"] {
+    .file-upload-btn:active { transform: scale(0.9); }
+
+    .file-upload-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .file-name {
+      font-size: 0.8em;
       color: var(--text-muted);
-      font-size: 0.85em;
+      max-width: 150px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    /* Botón principal animado */
+    /* Botón Publicar */
     .btn-main {
       background: linear-gradient(135deg, #1da1f2, #7c3aed);
       color: white;
@@ -91,40 +128,20 @@
       box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
     }
 
-    .btn-main:active {
-      transform: translateY(1px) scale(0.97);
-    }
+    .btn-main:active { transform: translateY(1px) scale(0.97); }
 
-    .post {
-      animation: fadeIn 0.4s ease-out;
-    }
+    .post { animation: fadeIn 0.4s ease-out; }
 
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .post p {
-      margin: 0 0 10px 0;
-      line-height: 1.5;
-      word-break: break-word;
-    }
+    .post p { margin: 0 0 10px 0; line-height: 1.5; word-break: break-word; }
+    .post img { max-width: 100%; border-radius: 12px; margin-top: 10px; border: 1px solid var(--glass-border); }
 
-    .post img {
-      max-width: 100%;
-      border-radius: 12px;
-      margin-top: 10px;
-      border: 1px solid var(--glass-border);
-    }
+    .actions { margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
 
-    .actions {
-      margin-top: 15px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    /* Botones de acción animados */
     .vote-btn {
       background: rgba(255, 255, 255, 0.05);
       color: var(--text-muted);
@@ -146,11 +163,8 @@
       transform: scale(1.05);
     }
 
-    .vote-btn:active {
-      transform: scale(0.92);
-    }
+    .vote-btn:active { transform: scale(0.92); }
 
-    /* Estados activos personalizados */
     .vote-btn.like-active {
       background: rgba(0, 230, 118, 0.15);
       color: var(--like-color);
@@ -165,10 +179,7 @@
       box-shadow: 0 0 12px rgba(255, 82, 82, 0.2);
     }
 
-    .vote-btn.reply-btn:hover {
-      border-color: var(--primary);
-      color: var(--primary);
-    }
+    .vote-btn.reply-btn:hover { border-color: var(--primary); color: var(--primary); }
 
     .replies {
       margin-left: 15px;
@@ -177,11 +188,7 @@
       margin-top: 15px;
     }
 
-    .reply-form {
-      margin-top: 15px;
-      display: none;
-      animation: fadeIn 0.3s ease-out;
-    }
+    .reply-form { margin-top: 15px; display: none; animation: fadeIn 0.3s ease-out; }
   </style>
 </head>
 <body>
@@ -192,7 +199,11 @@
     <form id="postForm">
       <textarea id="content" rows="3" placeholder="¿Qué estás pensando anónimamente...?"></textarea><br><br>
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <input type="file" id="image" accept="image/*">
+        <div class="file-upload-wrapper">
+          <label for="image" class="file-upload-btn" title="Adjuntar imagen">+</label>
+          <input type="file" id="image" accept="image/*" onchange="showFileName(this)">
+          <span class="file-name" id="fileNameDisplay"></span>
+        </div>
         <button type="submit" class="btn-main">Publicar</button>
       </div>
     </form>
@@ -205,27 +216,36 @@
     const feed = document.getElementById('feed');
     let allPosts = [];
 
-    // Generar o recuperar un ID único local por dispositivo para aislar los likes por usuario
-    function getAnonUserId() {
-      let id = localStorage.getItem('anon_user_id');
+    // ID único persistente SOLO por pestaña actual usando sessionStorage
+    function getAnonTabId() {
+      let id = sessionStorage.getItem('anon_tab_id');
       if (!id) {
-        id = 'user_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('anon_user_id', id);
+        id = 'tab_' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('anon_tab_id', id);
       }
       return id;
     }
 
-    const anonUserId = getAnonUserId();
+    const anonTabId = getAnonTabId();
 
     function getVotedState(postId, type) {
-      return localStorage.getItem(`voted_${type}_${postId}_${anonUserId}`) === 'true';
+      return sessionStorage.getItem(`voted_${type}_${postId}_${anonTabId}`) === 'true';
     }
 
     function setVotedState(postId, type, value) {
       if (value) {
-        localStorage.setItem(`voted_${type}_${postId}_${anonUserId}`, 'true');
+        sessionStorage.setItem(`voted_${type}_${postId}_${anonTabId}`, 'true');
       } else {
-        localStorage.removeItem(`voted_${type}_${postId}_${anonUserId}`);
+        sessionStorage.removeItem(`voted_${type}_${postId}_${anonTabId}`);
+      }
+    }
+
+    function showFileName(input) {
+      const display = document.getElementById('fileNameDisplay');
+      if (input.files && input.files[0]) {
+        display.textContent = input.files[0].name;
+      } else {
+        display.textContent = '';
       }
     }
 
@@ -284,6 +304,7 @@
 
       await fetch('/api/posts', { method: 'POST', body: formData });
       form.reset();
+      document.getElementById('fileNameDisplay').textContent = '';
     });
 
     async function toggleVote(id, type) {
