@@ -344,10 +344,10 @@
           ${post.is_pinned ? `<span class="pinned-badge" title="Fijado por el Admin">📌</span>` : ''}
           <p>${post.content || ''}</p>
           ${post.image_url ? `
-            <div class="post-img-container">
-              <img src="${post.image_url}" crossorigin="anonymous" loading="lazy" />
-            </div>
-          ` : ''}
+          <div class="post-img-container">
+            <img src="${post.image_url}" loading="lazy" />
+          </div>
+        ` : ''}
           <div class="actions">
             <button class="vote-btn ${hasLiked ? 'like-active' : ''}" onclick="toggleVote('${post.id}', 'like')">
               👍 <span>${post.likes}</span>
@@ -366,7 +366,7 @@
           </div>
           
           <div class="reply-form" id="reply-form-${post.id}">
-            <textarea id="reply-input-${post.id}" rows="2" placeholder="Escribe tu respuesta anónima..."></textarea><br><br>
+          <textarea id="reply-input-${post.id}" rows="2" placeholder="Escribe tu respuesta anónima..."></textarea><br><br>
             <button class="btn-main" onclick="submitReply('${post.id}')" style="padding: 6px 16px; font-size: 0.85em;">Enviar</button>
           </div>
 
